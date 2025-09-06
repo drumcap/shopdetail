@@ -7,9 +7,19 @@ import { formatPrice } from '@/lib/utils'
 
 interface ElementRendererProps {
   element: EditorElement
+  isEditing?: boolean
+  onEdit?: (text: string) => void
+  onEditStart?: () => void
+  onEditEnd?: () => void
 }
 
-export function ElementRenderer({ element }: ElementRendererProps) {
+export function ElementRenderer({ 
+  element, 
+  isEditing = false, 
+  onEdit, 
+  onEditStart, 
+  onEditEnd 
+}: ElementRendererProps) {
   const commonStyles = {
     ...element.style,
     fontSize: element.style.fontSize ? `${element.style.fontSize}px` : undefined,
@@ -24,10 +34,30 @@ export function ElementRenderer({ element }: ElementRendererProps) {
       const textElement = element as TextElement
       const Tag = textElement.content.tag || 'p'
       
+      if (isEditing) {
+        return (
+          <textarea
+            style={commonStyles}
+            className="w-full h-full resize-none border-none outline-none bg-transparent"
+            value={textElement.content.text}
+            onChange={(e) => onEdit?.(e.target.value)}
+            onBlur={() => onEditEnd?.()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                onEditEnd?.()
+              }
+            }}
+            autoFocus
+          />
+        )
+      }
+      
       return (
         <Tag
           style={commonStyles}
-          className="w-full h-full resize-none border-none outline-none bg-transparent"
+          className="w-full h-full resize-none border-none outline-none bg-transparent cursor-text"
+          onDoubleClick={() => onEditStart?.()}
         >
           {textElement.content.text}
         </Tag>
@@ -39,12 +69,11 @@ export function ElementRenderer({ element }: ElementRendererProps) {
       
       return (
         <div style={commonStyles} className="w-full h-full overflow-hidden relative">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={imageElement.content.src}
             alt={imageElement.content.alt}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="w-full h-full object-cover"
           />
           {imageElement.content.caption && (
             <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
